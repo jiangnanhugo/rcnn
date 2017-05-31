@@ -34,8 +34,8 @@ class TextIterator(object):
             self.end_of_data=False
             self.reset()
             raise StopIteration
-        batch_q1=[]
-        batch_q2 = []
+        batch_p=[]
+        batch_q = []
         batch_label = []
         try:
             while True:
@@ -46,31 +46,33 @@ class TextIterator(object):
                 if len(s)!=3:
                     raise IOError
 
-                q1,q2,label=s
-                q1=[int(w) for w in q1.split(' ')]
-                q2 = [int(w) for w in q2.split(' ')]
+                p,q,label=s
+                p=[int(w) for w in p.split(' ')]
+                q = [int(w) for w in q.split(' ')]
                 label=int(label)
 
-                if self.maxlen and (len(q1)>self.maxlen or len(q2)>self.maxlen):
+                if self.maxlen and (len(p)>self.maxlen or len(q)>self.maxlen):
                     continue
-                batch_q1.append(q1)
-                batch_q2.append(q2)
+                batch_p.append(p)
+                batch_q.append(q)
                 batch_label.append(label)
-                if len(batch_q1)>=self.n_batch:
+                if len(batch_p)>=self.n_batch:
                     break
         except IOError:
             self.end_of_data=True
 
-        if len(batch_q1)<=0 or len(batch_q2)<=0:
+        if len(batch_p)<=0 or len(batch_q)<=0:
             self.end_of_data=False
             self.reset()
             raise StopIteration
-        return prepare_data(batch_q1),prepare_data(batch_q2),batch_label
+        return prepare_data(batch_p,self.maxlen),prepare_data(batch_q,self.maxlen),np.asarray(batch_label,dtype='int32')
 
-def prepare_data(seqs_x):
+def prepare_data(seqs_x,maxlen=10):
     lengths_x=[len(s)-1 for s in seqs_x]
     n_samples=len(seqs_x)
-    maxlen_x=np.max(lengths_x)
+    maxlen_x = np.max(lengths_x)
+    if maxlen>0:
+        maxlen_x=maxlen
 
     x=np.zeros((maxlen_x,n_samples)).astype('int32')
     x_mask=np.zeros((maxlen_x,n_samples)).astype('float32')
