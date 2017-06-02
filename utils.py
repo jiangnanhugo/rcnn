@@ -54,8 +54,11 @@ class TextIterator(object):
                 p=[int(w) for w in p.split(' ') if len(w)>0]
                 q = [int(w) for w in q.split(' ') if len(w)>0]
                 label=int(label)
-                if self.maxlen and (len(p)>self.maxlen or len(q)>self.maxlen):
-                    continue
+                if self.maxlen and len(p)>self.maxlen:
+                    p=p[:self.maxlen]
+                if self.maxlen and len(q)>self.maxlen:
+                    q=q[:self.maxlen]
+
                 batch_p.append(p)
                 batch_q.append(q)
                 batch_label.append(label)
@@ -71,17 +74,16 @@ class TextIterator(object):
         return prepare_data(batch_p,self.maxlen),prepare_data(batch_q,self.maxlen),np.asarray(batch_label,dtype='int32')
 
 def prepare_data(seqs_x,maxlen=10):
-    lengths_x=[len(s)-1 for s in seqs_x]
+    lengths_x=[len(s) for s in seqs_x]
     n_samples=len(seqs_x)
-    if maxlen>0:
-        maxlen_x=maxlen
 
-    x=np.zeros((maxlen_x,n_samples)).astype('int32')
-    x_mask=np.zeros((maxlen_x,n_samples)).astype('float32')
+
+    x=np.zeros((maxlen,n_samples)).astype('int32')
+    x_mask=np.zeros((maxlen,n_samples)).astype('float32')
 
     for idx,s_x in enumerate(seqs_x):
-        x[:lengths_x[idx],idx]=s_x[:-1]
-        x_mask[:lengths_x[idx],idx]=1
+        x[:lengths_x[idx],idx]=s_x
+        x_mask[:lengths_x[idx],idx]=1.
 
     return x,x_mask
 

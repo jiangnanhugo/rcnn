@@ -4,6 +4,7 @@ import operator
 import csv
 import cPickle as pickle
 from collections import defaultdict
+from sklearn.cross_validation import StratifiedKFold
 
 
 VOCABULARY_SIZE=200000
@@ -54,8 +55,7 @@ def rewrite_corpus(vocab_path,train_filepath,test_filepath):
         sent1 = [str(word2idx[w] + 1) if w in word2idx else '0' for w in q1]
         q2 = q2.split()
         sent2 = [str(word2idx[w] + 1) if w in word2idx else '0' for w in q2]
-        if len(q1)<1 or len(q2)<1:
-            continue
+
         fw.write(" ".join(sent1) + "\t" + " ".join(sent2)+"\t" +str(dup)+ "\n")
     fw.close()
     reader = csv.reader(open(test_filepath))
@@ -70,19 +70,33 @@ def rewrite_corpus(vocab_path,train_filepath,test_filepath):
     fw.close()
 
 
-def kflod(train_filepath,k=6,ratio=0.8):
-    data=open(train_filepath,'r').read().split('\n')
-    for i in range(k):
-        shuffle(data)
-        fw=open('train_'+str(i)+train_filepath,'w')
-        separeted=int(len(data)*ratio)
-        for line in data[:separeted]:
-            fw.write(line+'\n')
+def kflod(train_filepath):
+    data=open(train_filepath,'r')
+    y=[]
+    p,q=[],[]
+    for line in data:
+        lines=line.split('\t')
+        p.append(lines[0])
+        q.append(lines[1])
+        y.append(lines[2])
+
+    skf=StratifiedKFold(y=y,n_folds=5,shuffle=True,random_state=1024)
+    idx=0
+    for train_idx,test_idx in skf:
+
+
+        fw = open(train_filepath + '.train.' + str(idx), 'w')
+        for id in train_idx:
+            pp,qq,yy= p[id],q[id],y[id]
+            fw.write( pp+'\t'+qq+'\t'+yy+'\n')
         fw.close()
-        fw = open('valid_' + str(i) + train_filepath, 'w')
-        for line in data[separeted:]:
-            fw.write(line + '\n')
+
+        fw = open(train_filepath+".valid."+str(idx), 'w')
+        for id in test_idx:
+            pp, qq, yy = p[id], q[id], y[id]
+            fw.write(pp + '\t' + qq + '\t' + yy + '\n')
         fw.close()
+        idx+=1
 
 
 #build_dataset('train.csv','test.csv')
