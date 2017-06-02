@@ -29,6 +29,10 @@ class TextIterator(object):
     def reset(self):
         self.source.seek(0)
 
+    def goto_line(self, line_index):
+        for _ in range(line_index):
+            self.source.readline()
+
     def next(self):
         if self.end_of_data:
             self.end_of_data=False
@@ -47,10 +51,9 @@ class TextIterator(object):
                     raise IOError
 
                 p,q,label=s
-                p=[int(w) for w in p.split(' ')]
-                q = [int(w) for w in q.split(' ')]
+                p=[int(w) for w in p.split(' ') if len(w)>0]
+                q = [int(w) for w in q.split(' ') if len(w)>0]
                 label=int(label)
-
                 if self.maxlen and (len(p)>self.maxlen or len(q)>self.maxlen):
                     continue
                 batch_p.append(p)
@@ -70,7 +73,6 @@ class TextIterator(object):
 def prepare_data(seqs_x,maxlen=10):
     lengths_x=[len(s)-1 for s in seqs_x]
     n_samples=len(seqs_x)
-    maxlen_x = np.max(lengths_x)
     if maxlen>0:
         maxlen_x=maxlen
 

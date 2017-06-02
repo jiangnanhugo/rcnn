@@ -22,7 +22,7 @@ log = logging.getLogger()
 
 
 class RCNNModel(object):
-    def __init__(self, n_input, n_vocab, n_hidden, cell='gru', optimizer='adam', dropout=0.1, sim='eucdian',maxlen=50):
+    def __init__(self, n_input, n_vocab, n_hidden, cell='gru', optimizer='adam', dropout=0.1, sim='eucdian',maxlen=50,batch_size=20):
 
         self.x = T.imatrix('batched input query p')
         self.xmask = T.matrix('batched masked query p')
@@ -32,6 +32,7 @@ class RCNNModel(object):
 
         self.n_input = n_input  # input word dimension
         self.n_hidden = n_hidden  # hidden size
+        self.batch_size=batch_size
 
         self.cell = cell
         self.optimizer = optimizer
@@ -82,9 +83,11 @@ class RCNNModel(object):
         log.info('building convolution pooling layer....')
         conv_pool_layer = ConvPool(input=sim_layer.activation,
                                    filter_shape=(2,1,3,3), # feature_maps, 1, filter_h, filter_w
-                                   input_shape=(10,1,50,50))#sim_layer.activation.shape)
+                                   input_shape=(self.batch_size,1,50,50))#sim_layer.activation.shape)
         projected_layer=basicLayer(conv_pool_layer.activation,input_shape=1152)
-        cost = T.mean(T.nnet.binary_crossentropy(projected_layer.activation, self.label))
+        rav_cost=T.nnet.binary_crossentropy(projected_layer.activation, self.label)
+        cost = T.mean(rav_cost)
+        acc=T.eq(projected_layer.activation>0.5,self.label)
         log.info('cost calculated.....')
 
         self.params = [self.E, ]
@@ -106,10 +109,14 @@ class RCNNModel(object):
         log.info('gradient calculated.....')
 
         self.train = theano.function(inputs=[self.x, self.xmask,self.y,self.ymask,self.label, lr],
-                                     outputs=cost,
+                                     outputs=[cost,acc],
                                      updates=updates,
                                      givens={self.is_train: np.cast['int32'](1)})
-
+        self.predict = theano.function(inputs=[self.x, self.xmask, self.y, self.ymask, self.label],
+                                    outputs=[rav_cost,acc],
+                                    givens={self.is_train: np.cast['int32'](0)})
+        '''
         self.test = theano.function(inputs=[self.x, self.xmask, self.y, self.ymask,self.label],
-                                     outputs=[projected_layer.activation,cost],
-                                     givens={self.is_train: np.cast['int32'](1)})
+                                     outputs=[error,cost],
+                                     givens={self.is_train: np.cast['int32'](0)})
+        '''
