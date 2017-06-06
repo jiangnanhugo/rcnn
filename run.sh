@@ -1,2 +1,2 @@
 #!/bin/sh
-THEANO_FLAGS="floatX=float32,device=cuda0,mode=FAST_RUN,lib.cnmem=0.9"  python main.py --model_dir model/parameters_7809.02.pkl --goto_line 205500
+THEANO_FLAGS="floatX=float32,device=cuda,optimizer=fast_run,lib.cnmem=1,nvcc.fastmath=True"  python main.py --train_file data/train.txt.train.2  --goto_line 0  --batch_size 1000

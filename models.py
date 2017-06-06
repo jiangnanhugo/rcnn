@@ -14,6 +14,7 @@ if theano.config.device == 'cpu':
 else:
     from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
+from theano.compile.nanguardmode import NanGuardMode
 import logging
 from logging.config import fileConfig
 
@@ -97,7 +98,8 @@ class RCNNModel(object):
         self.params += projected_layer.params
 
         lr = T.scalar('lr')
-        gparams = [T.clip(T.grad(cost, p), -10, 10) for p in self.params]
+        gparams = [T.clip(T.grad(cost, p), -3, 3) for p in self.params]
+        #gparams = [T.grad(cost, p) for p in self.params]
 
         if self.optimizer == 'sgd':
             updates = sgd(self.params, gparams, lr)
@@ -112,11 +114,12 @@ class RCNNModel(object):
                                      outputs=[cost,acc],
                                      updates=updates,
                                      givens={self.is_train: np.cast['int32'](1)})
+
         self.predict = theano.function(inputs=[self.x, self.xmask, self.y, self.ymask, self.label],
                                     outputs=[rav_cost,acc],
                                     givens={self.is_train: np.cast['int32'](0)})
-        '''
-        self.test = theano.function(inputs=[self.x, self.xmask, self.y, self.ymask,self.label],
-                                     outputs=[error,cost],
+
+        self.test = theano.function(inputs=[self.x, self.xmask, self.y, self.ymask],
+                                     outputs=projected_layer.activation,
                                      givens={self.is_train: np.cast['int32'](0)})
-        '''
+

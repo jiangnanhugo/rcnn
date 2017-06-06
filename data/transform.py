@@ -7,7 +7,7 @@ from collections import defaultdict
 from sklearn.cross_validation import StratifiedKFold
 
 
-VOCABULARY_SIZE=200000
+VOCABULARY_SIZE=150000
 
 def build_dataset(train_filepath,test_filepath):
     vocab=defaultdict(int)
@@ -35,14 +35,19 @@ def build_dataset(train_filepath,test_filepath):
             vocab[w] += 1
     print len(vocab)
     sorted_vocab = sorted(vocab.items(), cmp=lambda x, y: cmp(x[1], y[1]), reverse=True)
-
+    #oov = sorted_vocab[VOCABULARY_SIZE:]
     sorted_vocab=sorted_vocab[:VOCABULARY_SIZE]
+
+    #with open('oov.pkl','w')as f:
+    #    pickle.dump(oov,f)
     word2idx=dict()
     for widx,(w,_) in enumerate(sorted_vocab):
         word2idx[w]=widx
 
     with open('word2idx.pkl','w')as f:
         pickle.dump(word2idx,f)
+
+
 
 
 def rewrite_corpus(vocab_path,train_filepath,test_filepath):
@@ -88,17 +93,21 @@ def kflod(train_filepath):
         fw = open(train_filepath + '.train.' + str(idx), 'w')
         for id in train_idx:
             pp,qq,yy= p[id],q[id],y[id]
-            fw.write( pp+'\t'+qq+'\t'+yy+'\n')
+            fw.write( pp+'\t'+qq+'\t'+yy)
         fw.close()
 
         fw = open(train_filepath+".valid."+str(idx), 'w')
         for id in test_idx:
             pp, qq, yy = p[id], q[id], y[id]
-            fw.write(pp + '\t' + qq + '\t' + yy + '\n')
+            fw.write(pp + '\t' + qq + '\t' + yy )
         fw.close()
         idx+=1
 
 
-#build_dataset('train.csv','test.csv')
-#rewrite_corpus('word2idx.pkl','train.csv','test.csv')
+
+
+
+#build_dataset('raw_train.csv','raw_test.csv')
+rewrite_corpus('word2idx.pkl','raw_train.csv','raw_test.csv')
 kflod('train.txt')
+#clean_traindata('train.csv','test.csv')

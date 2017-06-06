@@ -14,13 +14,14 @@ def load_model(f,model):
     return model
 
 class TextIterator(object):
-    def __init__(self,source,n_batch,maxlen=None):
+    def __init__(self,source,n_batch,maxlen=None,mode=0):
 
         self.source=open(source,'r')
         self.n_batch=n_batch
         self.maxlen=maxlen
 
         self.end_of_data=False
+        self.mode=mode
 
     def __iter__(self):
         return self
@@ -46,14 +47,15 @@ class TextIterator(object):
                 s=self.source.readline()
                 if s=="":
                     raise IOError
-                s=s.split('\t')
-                if len(s)!=3:
+                s=s.strip().split('\t')
+                if len(s)!=3 and len(s)!=2:
                     raise IOError
 
-                p,q,label=s
-                p=[int(w) for w in p.split(' ') if len(w)>0]
-                q = [int(w) for w in q.split(' ') if len(w)>0]
-                label=int(label)
+
+                p=[int(w) for w in s[0].split(' ') if len(w)>0]
+                q = [int(w) for w in s[1].split(' ') if len(w)>0]
+                if len(s)==3:
+                    label=int(s[2])
                 if self.maxlen and len(p)>self.maxlen:
                     p=p[:self.maxlen]
                 if self.maxlen and len(q)>self.maxlen:
@@ -61,7 +63,8 @@ class TextIterator(object):
 
                 batch_p.append(p)
                 batch_q.append(q)
-                batch_label.append(label)
+                if len(s)==3:
+                    batch_label.append(label)
                 if len(batch_p)>=self.n_batch:
                     break
         except IOError:
@@ -71,7 +74,10 @@ class TextIterator(object):
             self.end_of_data=False
             self.reset()
             raise StopIteration
-        return prepare_data(batch_p,self.maxlen),prepare_data(batch_q,self.maxlen),np.asarray(batch_label,dtype='int32')
+        if self.mode==2:
+            return prepare_data(batch_p,self.maxlen),prepare_data(batch_q,self.maxlen)
+        else:
+            return prepare_data(batch_p, self.maxlen), prepare_data(batch_q, self.maxlen),np.asarray(batch_label,dtype='int32')
 
 def prepare_data(seqs_x,maxlen=10):
     lengths_x=[len(s) for s in seqs_x]
